@@ -73,7 +73,7 @@
         <div class="game-board" style="--grid-size: {GRID_SIZE};">
             {#each Array(GRID_SIZE) as _, y}
                 {#each Array(GRID_SIZE) as _, x}
-                   {@const isSnake = $gameStore.snake.some(segment => segment.x === x && segment.y === y)}
+                   {@const isSnake = $gameStore.snake.hasSegment({x, y})}
                    {@const isFood = $gameStore.food.x === x && $gameStore.food.y === y}
                    <div
                        class="cell"

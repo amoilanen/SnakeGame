@@ -3,7 +3,7 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Game from '$lib/components/Game.svelte';
 import { gameStore } from '$lib/stores/gameStore';
-import type { GameState } from '$lib/types';
+import type GameState from '$lib/models/GameState';
 import { GRID_SIZE } from '$lib/constants';
 
 describe('Game', () => {
@@ -79,7 +79,7 @@ describe('Game', () => {
         gameStore.subscribe(s => state = s)();
 
         if (!state) throw new Error('State should be defined');
-        const head = state.snake[0];
+        const head = state.snake.segments[0];
         gameStore.setFood({ x: head.x + 1, y: head.y });
         expect(state.score).toBe(0);
 
@@ -101,7 +101,7 @@ describe('Game', () => {
         gameStore.subscribe(s => state = s)();
         if (!state) throw new Error('State should be defined');
 
-        state.snake = [
+        state.snake.segments = [
             { x: 3, y: 3 },
             { x: 4, y: 3 },
             { x: 4, y: 4 },
@@ -133,7 +133,7 @@ describe('Game', () => {
         gameStore.subscribe(s => state = s)();
         if (!state) throw new Error('State should be defined');
 
-        state.snake = [
+        state.snake.segments = [
             { x: 3, y: 3 },
             { x: 4, y: 3 },
             { x: 4, y: 4 },

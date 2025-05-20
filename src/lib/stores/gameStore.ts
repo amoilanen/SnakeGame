@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
-import type { GameState, Direction, Position, GameConfig } from '$lib/types';
+import type { Direction, Position, GameConfig } from '$lib/types';
+import Snake from '$lib/models/Snake';
+import type GameState from '$lib/models/GameState';
 import { GRID_SIZE } from '$lib/constants';
 
 const DEFAULT_CONFIG: GameConfig = {
@@ -8,24 +10,27 @@ const DEFAULT_CONFIG: GameConfig = {
     speedIncrease: 5
 };
 
-const createInitialState = (config: GameConfig): GameState => ({
-    snake: [
+const createInitialState = (config: GameConfig): GameState => {
+    let snake = new Snake([
         { x: Math.floor(config.gridSize / 2), y: Math.floor(config.gridSize / 2) }
-    ],
-    food: generateFood(config.gridSize, [{ x: Math.floor(config.gridSize / 2), y: Math.floor(config.gridSize / 2) }]),
-    direction: 'RIGHT',
-    score: 0,
-    isGameOver: false
-});
+    ]);
+    return {
+        snake,
+        food: generateFood(config.gridSize, snake),
+        direction: 'RIGHT',
+        score: 0,
+        isGameOver: false
+    };
+};
 
-function generateFood(gridSize: number, snake: Position[]): Position {
+function generateFood(gridSize: number, snake: Snake): Position {
     let food: Position;
     do {
         food = {
             x: Math.floor(Math.random() * gridSize),
             y: Math.floor(Math.random() * gridSize)
         };
-    } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
+    } while (snake.eatsFood(food));
     return food;
 }
 
@@ -38,43 +43,24 @@ function createGameStore(config: GameConfig = DEFAULT_CONFIG) {
             update(state => {
                 if (state.isGameOver) return state;
 
-                const head = { ...state.snake[0] };
+                let {
+                    updatedSnake,
+                    hasCollision,
+                    ateFood
+                } = state.snake.moveInDirection(state.direction, state.food, config.gridSize);
 
-                switch (state.direction) {
-                    case 'UP':
-                        head.y = (head.y - 1 + config.gridSize) % config.gridSize;
-                        break;
-                    case 'DOWN':
-                        head.y = (head.y + 1) % config.gridSize;
-                        break;
-                    case 'LEFT':
-                        head.x = (head.x - 1 + config.gridSize) % config.gridSize;
-                        break;
-                    case 'RIGHT':
-                        head.x = (head.x + 1) % config.gridSize;
-                        break;
-                }
-
-                // Check for collision with self
-                if (state.snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                if (hasCollision) {
                     return { ...state, isGameOver: true };
-                }
-
-                const newSnake = [head];
-                const ateFood = head.x === state.food.x && head.y === state.food.y;
-
-                if (ateFood) {
-                    newSnake.push(...state.snake);
+                } else if (ateFood) {
                     return {
                         ...state,
-                        snake: newSnake,
-                        food: generateFood(config.gridSize, newSnake),
+                        snake: updatedSnake,
+                        food: generateFood(config.gridSize, updatedSnake),
                         score: state.score + 1
                     };
+                } else {
+                    return { ...state, snake: updatedSnake };
                 }
-
-                newSnake.push(...state.snake.slice(0, -1));
-                return { ...state, snake: newSnake };
             });
         },
         changeDirection: (newDirection: Direction) => {
